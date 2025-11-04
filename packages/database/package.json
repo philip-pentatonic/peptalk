@@ -1,0 +1,33 @@
+{
+  "name": "@peptalk/database",
+  "version": "0.1.0",
+  "description": "Database schema, migrations, and queries for PepTalk D1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "migrate:local": "wrangler d1 execute peptalk-db --local --file=./migrations/0001-initial.sql",
+    "migrate:prod": "wrangler d1 execute peptalk-db --remote --file=./migrations/0001-initial.sql"
+  },
+  "dependencies": {
+    "@peptalk/schemas": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "wrangler": "^3.24.0"
+  }
+}

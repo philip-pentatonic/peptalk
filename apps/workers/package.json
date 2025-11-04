@@ -1,0 +1,33 @@
+{
+  "name": "peptalk-workers",
+  "version": "0.1.0",
+  "description": "PepTalk Cloudflare Workers API",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@peptalk/database": "workspace:*",
+    "@peptalk/schemas": "workspace:*",
+    "@peptalk/payments": "workspace:*",
+    "hono": "^3.12.0",
+    "lucia": "^3.0.0",
+    "stripe": "^14.14.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "wrangler": "^3.24.0"
+  }
+}
