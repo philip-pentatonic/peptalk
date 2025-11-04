@@ -1,0 +1,26 @@
+# docs/03-Delivery-Plan.md
+# PepTalk — Delivery Plan
+
+## Milestones
+1) **Research Pipeline MVP** (Week 1–2)
+   - Ingest (PubMed/CT.gov), normalization, rubric, synthesis output (JSON+MD), compliance pass, write assets.
+
+2) **Content & Search** (Week 3)
+   - Seed 20 peptides. Search & filters. Public sample page. PDF export.
+
+3) **Subscriptions & Changelog** (Week 4)
+   - Paywall integration, account page, weekly “what changed” feed.
+
+## Roles (solo-friendly)
+- Builder (you): ingest + synthesis + UI.
+- Editorial reviewer (you/partner): approve pages before publish.
+
+## Acceptance Criteria (per peptide)
+- SourcePack valid; PageRecord valid; Markdown contains disclaimer + sections; every empirical sentence cites PMID/NCT; compliance pass true; PDF generated.
+
+## Risks & Mitigations
+- **Regulatory optics** → “reported, not recommended” language; strict disclaimers; no vendor links.
+- **Low-quality studies** → deterministic rubric; explicit caveats; show effect direction.
+
+## Rollout
+- Private alpha with 20 peptides → capture feedback → expand catalogue.

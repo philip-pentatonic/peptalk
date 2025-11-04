@@ -1,0 +1,26 @@
+# docs/06-Compliance-&-Editorial.md
+# PepTalk — Compliance & Editorial Policy
+
+## Boundaries
+- Educational content only. No medical advice. No “should,” “recommend,” “dosage,” “take,” “buy,” or vendor links.
+- Protocols are reported verbatim from studies and clearly labelled “reported, not recommended.”
+- Regulatory notes are descriptive (“status appears X per source Y”), not advisory.
+
+## Disclaimers (display at top of every page)
+> Educational summary. Not medical advice. We do not recommend usage, dosing, or sourcing. All claims are derived from cited studies or trial records.
+
+## Editorial Standards
+- Every empirical claim cites a PMID or NCT inline.
+- Human vs animal evidence always distinguished.
+- Safety sections highlight adverse events, contraindication signals, and uncertainties.
+
+## Review Workflow
+1) Automated checks (regex + link presence for PMID/NCT).
+2) Model compliance pass (separate model from synthesis).
+3) Human approval (quick read) before publish.
+
+## Corrections
+- Maintain a public changelog with timestamps and a brief reason for updates.
+
+## Legal/Regulatory Notes
+- Maintain high-level status (UK/EU/US) with citations to official sources where available. If unclear, say “unclear/varies by jurisdiction.”

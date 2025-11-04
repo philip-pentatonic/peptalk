@@ -1,0 +1,29 @@
+# docs/01-Product-Vision.md
+# PepTalk — Product Vision
+
+## Problem
+Peptide information online is noisy, inconsistent, and often promotional. People need a credible, structured reference with transparent sourcing.
+
+## Solution
+A living, peptide-focused evidence index:
+- Structured pages per peptide with **evidence grade**, **human vs animal** counts, **studied protocols (reported, not recommended)**, **safety**, **regulatory lens**, and **live bibliography**.
+- Weekly “what changed” digest from PubMed/ClinicalTrials.gov.
+- Downloadable PDFs per page.
+
+## Users
+- Curious, informed consumers; coaches/clinics seeking quick evidence checks; researchers needing fast orientation.
+
+## Differentiation
+- Peptides-only. Citation-first. Deterministic ingestion from public registries. No vendor links. No recommendations.
+
+## Scope (MVP)
+- 20 peptide pages, search + filters, PDF export, weekly update feed, basic subscription.
+
+## Non-Goals (MVP)
+- No dosage recommendations, no sourcing/buy links, no forums or UGC.
+
+## Pricing (provisional)
+- Annual subscription with a free sample page and public weekly changelog.
+
+## Naming & Tone
+- “PepTalk” (working name). Neutral, clinical voice. No hype words. Prominent disclaimer on every page.

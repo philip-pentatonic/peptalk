@@ -1,0 +1,45 @@
+# docs/02-Tech-Architecture.md
+# PepTalk — Technical Architecture
+
+## Stack (MVP)
+- Frontend: Next.js (App Router) on an edge host (e.g., Cloudflare Pages).
+- API: Edge runtime (e.g., Cloudflare Workers with Hono).
+- DB: D1 (SQLite + FTS) initially; optional Postgres (Neon) later.
+- Storage: Object storage for PDFs (R2 or equivalent).
+- Auth: Email magic link (Lucia). Payments: Subscription provider (Lemon Squeezy / Stripe).
+- Background: Scheduled job (cron) for nightly ingestion + weekly digest build.
+
+## Key Services
+- **research-ingest**: pulls PubMed + ClinicalTrials.gov, outputs SourcePack JSON.
+- **research-synthesis**: calls LLM to generate PageRecord JSON + Markdown.
+- **research-compliance**: automated checks + LLM pass for tone/safety.
+- **content-publisher**: writes JSON/MD, triggers PDF render, updates search index.
+
+## Data Model (high level)
+- peptides(id, slug, name, aliases[], evidence_grade, last_reviewed_at)
+- studies(id, peptide_id, registry, external_id, year, study_type, n, outcomes_json, effect_direction, safety_json, title, abstract, link)
+- legal_notes(peptide_id, region, status, notes_html)
+- page_versions(peptide_id, version, storage_key, created_at)
+- subscriptions, users, sessions, changelog
+- FTS tables on (studies.title, studies.abstract) and (peptides.name, aliases, summary_html)
+
+## API (selected)
+- GET /api/peptides?query=&grade=&human_only=
+- GET /api/peptides/:slug
+- GET /api/studies?peptide=:id&after=:iso
+- POST /api/ingest/run (cron-protected)
+- POST /api/webhooks/subscriptions (provider → status updates)
+
+## Security
+- Principle of least privilege for bindings/keys.
+- Signed URLs for PDF downloads.
+- Rate limiting on auth and search endpoints.
+- Content is educational: never store or display procurement advice.
+
+## Observability
+- Structured logs: {component, peptide, counts, duration_ms, model_tokens}.
+- Basic cost counters per run.
+
+## Cost Guardrails
+- Prefer edge compute and SQLite for read-heavy workloads.
+- Keep LLM calls to two passes per page (synthesis + compliance).

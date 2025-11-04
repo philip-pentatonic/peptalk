@@ -1,0 +1,53 @@
+# docs/04-Research-Pipeline.md
+# PepTalk — Research Pipeline
+
+## Goal
+Deterministic ingest from public registries → structured records → model synthesis → compliance → publish.
+
+## Env
+- LLM_MODEL_SYNTHESIS (default: gpt-5-thinking)
+- LLM_MODEL_COMPLIANCE (default: gpt-5-chat-latest)
+- OPENAI_API_KEY, PUBMED_EMAIL, USER_AGENT
+
+## Schemas
+- `SourcePack` (studies list + meta)
+- `PageRecord` (final machine-readable page data)
+> See `schemas/` in code for Zod definitions.
+
+## Pipeline Steps
+1) **Ingest**
+   - PubMed: search → pmids → fetch details (title, year, abstract, mesh).
+   - ClinicalTrials.gov: search NCT ids → fetch interventions/endpoints.
+   - Map to `Study` objects; dedupe by id/title.
+
+2) **Normalize**
+   - Infer study_type (human_rct / human_observational / animal / in_vitro).
+   - Light outcome direction label (benefit|null|harm|mixed if explicit).
+
+3) **Grade (deterministic)**
+   - Code the rubric; return {grade, rationale} for the set.
+
+4) **Synthesis (LLM)**
+   - System guardrails + Writer template.
+   - Output **PART A JSON** (PageRecord) + **PART B Markdown** (page).
+
+5) **Compliance**
+   - Regex rules (+ model pass) to strip prescriptive language and ensure citations on every empirical claim.
+   - Fail the pipeline if issues remain.
+
+6) **Publish**
+   - Write JSON + MD to content store; render PDF; update FTS.
+
+## CLI
+- `tsx research/run.ts "BPC-157" "Body Protection Compound"`
+- Batch: `tsx research/run-batch.ts catalog/peptides.yaml`
+
+## Tests (examples)
+- Ingest returns at least one record for a known test query.
+- Rubric upgrades with ≥2 consistent RCTs (N≥50) → “high”.
+- Markdown includes disclaimer; all PMIDs/NCTs in `citations[]` appear in the text.
+
+## Outputs
+- `content/peptides/{slug}.json`
+- `content/peptides/{slug}.md`
+- `storage/pages/{slug}/latest.pdf`

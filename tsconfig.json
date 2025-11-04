@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    // Type Checking
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Module Resolution
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+
+    // Emit
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noEmit": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Skip Lib Check (for faster builds)
+    "skipLibCheck": true,
+
+    // Path Mapping
+    "baseUrl": ".",
+    "paths": {
+      "@peptalk/schemas": ["./packages/schemas"],
+      "@peptalk/database": ["./packages/database"],
+      "@peptalk/research": ["./packages/research"],
+      "@peptalk/payments": ["./packages/payments"],
+      "@peptalk/ui": ["./packages/ui"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}

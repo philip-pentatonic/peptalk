@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.dev.vars
+
+# Cloudflare
+.wrangler/
+wrangler.toml.local
+
+# Generated content
+content/peptides/*.json
+content/peptides/*.md
+storage/pages/**/*.pdf
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Git worktrees
+worktree/
+
+# Temporary files
+*.tmp
+.cache/
