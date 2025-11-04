@@ -1,8 +1,6 @@
 // Main exports for @peptalk/database
 export * from './types'
-export * from './queries/peptides'
-export * from './queries/studies'
-export * from './queries/users'
-export * from './queries/subscriptions'
-export * from './utils/transaction'
-export * from './utils/pagination'
+export * as peptides from './queries/peptides'
+export * as studies from './queries/studies'
+export * as users from './queries/users'
+export * as subscriptions from './queries/subscriptions'
