@@ -1,0 +1,27 @@
+{
+  "name": "@peptalk/auth",
+  "version": "0.1.0",
+  "description": "Authentication utilities with Lucia",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lucia": "^3.0.0",
+    "@lucia-auth/adapter-sqlite": "^3.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240129.0",
+    "typescript": "^5.3.3"
+  }
+}
