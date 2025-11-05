@@ -1,6 +1,7 @@
 name = "peptalk-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "ec358c7d7cf76532fe1a4160b10a8247"
 
 # Workers configuration
 [build]
@@ -10,7 +11,7 @@ command = "pnpm build"
 [[d1_databases]]
 binding = "DB"
 database_name = "peptalk-db"
-database_id = "YOUR_D1_DATABASE_ID"
+database_id = "df17e106-fbd7-430f-be81-b03661ee430a"
 
 # R2 Storage bindings
 [[r2_buckets]]
@@ -20,7 +21,7 @@ bucket_name = "peptalk-pdfs"
 # KV Namespace for rate limiting
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "3d1a9c2146c04e28bee9c2d8f4565b1c"
 
 # Environment variables
 [vars]
