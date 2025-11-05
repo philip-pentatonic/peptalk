@@ -50,3 +50,4 @@ worktree/
 # Temporary files
 *.tmp
 .cache/
+API_KEYS_REFERENCE.md
