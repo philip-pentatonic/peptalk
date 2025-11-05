@@ -6,8 +6,16 @@
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@peptalk/schemas": ["../schemas/dist"]
+    }
   },
+  "references": [
+    { "path": "../schemas" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
