@@ -9,8 +9,10 @@
     "types": ["@cloudflare/workers-types"],
     "noEmit": false,
     "allowImportingTsExtensions": false,
+    "baseUrl": "..",
     "paths": {
-      "@peptalk/schemas": ["../schemas/dist"]
+      "@peptalk/schemas": ["schemas/dist/index.d.ts"],
+      "@peptalk/schemas/*": ["schemas/dist/*"]
     }
   },
   "references": [
