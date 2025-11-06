@@ -1,0 +1,22 @@
+# Fly.io configuration for PepTalk Research Pipeline
+
+app = "peptalk-research"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile.research"
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
