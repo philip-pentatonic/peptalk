@@ -6,12 +6,14 @@
 export * from './client'
 export * from './prompts'
 export * from './parser'
+export * from './plain-language'
 
 import type { Study, EvidenceGrade, PageRecord, Section } from '@peptalk/schemas'
 import { calculateStudyCounts } from '@peptalk/schemas'
-import { synthesize as callClaude, type ClaudeConfig } from './client'
+import { synthesize as callClaude, type ClaudeConfig, estimateCost } from './client'
 import { SYSTEM_PROMPT, generateUserPrompt } from './prompts'
 import { parseSynthesis, cleanHtml, validateCitations } from './parser'
+import { addPlainLanguageSummaries } from './plain-language'
 
 export interface SynthesisInput {
   peptideId: string
@@ -45,7 +47,7 @@ export async function synthesizePage(
     input.evidenceGrade
   )
 
-  // Call Claude API
+  // Call Claude API for main synthesis
   const result = await callClaude(SYSTEM_PROMPT, userPrompt, config)
 
   // Clean HTML
@@ -61,6 +63,13 @@ export async function synthesizePage(
     console.warn('Synthesis may have missing citations:', validation.missingCitations)
   }
 
+  // Generate plain language summaries (second pass)
+  const sectionsWithSummaries = await addPlainLanguageSummaries(
+    sections,
+    input.name,
+    config
+  )
+
   // Calculate study counts
   const { humanRctCount, animalCount } = calculateStudyCounts(input.studies)
 
@@ -71,7 +80,7 @@ export async function synthesizePage(
     aliases: input.aliases,
     evidenceGrade: input.evidenceGrade,
     summaryHtml,
-    sections,
+    sections: sectionsWithSummaries,
     studies: input.studies,
     humanRctCount,
     animalCount,
@@ -82,13 +91,15 @@ export async function synthesizePage(
     ],
   }
 
-  // Calculate cost
-  const costPerPeptide = (result.usage.inputTokens / 1_000_000) * 3 +
-    (result.usage.outputTokens / 1_000_000) * 15
+  // Calculate cost (main synthesis + plain language summaries)
+  // Plain language pass uses ~200 tokens output per section
+  const mainCost = estimateCost(result.usage)
+  const summariesCost = (sections.length * 200 / 1_000_000) * 15 // Approximate
+  const totalCost = mainCost + summariesCost
 
   return {
     pageRecord,
-    cost: costPerPeptide,
-    usage: result.usage,
+    cost: totalCost,
+    usage: result.usage, // Only tracking main synthesis usage for now
   }
 }

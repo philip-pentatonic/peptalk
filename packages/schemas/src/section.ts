@@ -16,6 +16,10 @@ export const SectionSchema = z.object({
     .string()
     .min(1)
     .describe('HTML content with inline citations (PMID:xxx, NCT:xxx)'),
+  plainLanguageSummary: z
+    .string()
+    .optional()
+    .describe('Plain-language summary for non-scientists (2-3 sentences)'),
   order: z.number().int().nonnegative().describe('Display order (0-indexed)'),
 })
 

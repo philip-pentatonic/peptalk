@@ -1,11 +1,14 @@
 /**
- * Database writer for publishing PageRecords to D1.
- * Handles peptide + studies insertion with transactions.
+ * Database writer for publishing PageRecords via HTTP API.
+ * Calls internal Cloudflare Workers endpoints to write to D1.
  */
 
-import type { D1Database } from '@cloudflare/workers-types'
 import type { PageRecord } from '@peptalk/schemas'
-import { Peptides, Studies } from '@peptalk/database'
+
+export interface DatabaseWriteConfig {
+  apiUrl: string
+  apiSecret: string
+}
 
 export interface DatabaseWriteResult {
   peptideId: string
@@ -15,25 +18,27 @@ export interface DatabaseWriteResult {
 }
 
 /**
- * Write PageRecord to D1 database.
- * Inserts peptide, studies, and sections in a transaction.
+ * Write PageRecord to D1 database via HTTP API.
+ * Inserts peptide, studies, and sections through internal endpoints.
  */
 export async function writeToDatabase(
   pageRecord: PageRecord,
-  db: D1Database
+  config: DatabaseWriteConfig
 ): Promise<DatabaseWriteResult> {
   try {
     // 1. Insert or update peptide
-    const peptideId = await upsertPeptide(pageRecord, db)
+    const peptideId = await upsertPeptide(pageRecord, config)
 
     // 2. Insert studies (deduplicated)
-    const studiesInserted = await insertStudies(peptideId, pageRecord.studies, db)
+    // Note: Foreign key uses slug, not UUID
+    const studiesInserted = await insertStudies(pageRecord.slug, pageRecord.studies, config)
 
     // 3. Insert sections
-    const sectionsInserted = await insertSections(peptideId, pageRecord.sections, db)
+    // Note: Also uses slug for foreign key
+    const sectionsInserted = await insertSections(pageRecord.slug, pageRecord.sections, config)
 
     // 4. Log to changelog
-    await logChange(peptideId, pageRecord.version, db)
+    await logChange(peptideId, pageRecord.version, config)
 
     return {
       peptideId,
@@ -48,28 +53,16 @@ export async function writeToDatabase(
 }
 
 /**
- * Insert or update peptide record.
+ * Insert or update peptide record via HTTP.
  */
-async function upsertPeptide(pageRecord: PageRecord, db: D1Database): Promise<string> {
-  const existing = await Peptides.getBySlug(db, pageRecord.slug)
-
-  if (existing) {
-    // Update existing peptide
-    await Peptides.update(db, existing.id, {
-      name: pageRecord.name,
-      aliases: pageRecord.aliases,
-      evidenceGrade: pageRecord.evidenceGrade,
-      humanRctCount: pageRecord.humanRctCount,
-      animalCount: pageRecord.animalCount,
-      summaryHtml: pageRecord.summaryHtml,
-      version: pageRecord.version,
-    })
-    return existing.id
-  } else {
-    // Insert new peptide
-    const peptideId = crypto.randomUUID()
-    await Peptides.insert(db, {
-      id: peptideId,
+async function upsertPeptide(pageRecord: PageRecord, config: DatabaseWriteConfig): Promise<string> {
+  const response = await fetch(`${config.apiUrl}/api/internal/peptide`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.apiSecret,
+    },
+    body: JSON.stringify({
       slug: pageRecord.slug,
       name: pageRecord.name,
       aliases: pageRecord.aliases,
@@ -78,45 +71,70 @@ async function upsertPeptide(pageRecord: PageRecord, db: D1Database): Promise<st
       animalCount: pageRecord.animalCount,
       summaryHtml: pageRecord.summaryHtml,
       version: pageRecord.version,
-    })
-    return peptideId
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to upsert peptide: ${response.status} ${error}`)
   }
+
+  const result = await response.json() as { peptideId: string; action: string }
+  return result.peptideId
 }
 
 /**
- * Insert studies for peptide.
+ * Insert studies for peptide via HTTP.
  * Handles deduplication by study ID.
  */
 async function insertStudies(
-  peptideId: string,
-  studies: PageRecord['studies'],
-  db: D1Database
+  peptideSlug: string,
+  studyList: PageRecord['studies'],
+  config: DatabaseWriteConfig
 ): Promise<number> {
-  if (studies.length === 0) return 0
+  if (studyList.length === 0) return 0
 
-  // Map to database format
-  const studyRecords = studies.map((study) => ({
+  // Map to database format (snake_case for D1)
+  // Note: peptide_id is actually the slug because of FK constraint
+  const studyRecords = studyList.map((study) => ({
     id: getStudyId(study),
-    peptideId,
+    peptide_id: peptideSlug,
+    type: study.type,
     title: study.title,
-    studyType: study.studyType,
-    abstract: 'abstract' in study ? study.abstract : undefined,
-    year: 'year' in study ? study.year : undefined,
-    authors: 'authors' in study ? study.authors : undefined,
-    journal: 'journal' in study ? study.journal : undefined,
-    doi: 'doi' in study ? study.doi : undefined,
-    pmid: study.type === 'pubmed' ? study.pmid : undefined,
-    nctId: study.type === 'clinicaltrials' ? study.nctId : undefined,
-    status: study.type === 'clinicaltrials' ? study.status : undefined,
-    phase: study.type === 'clinicaltrials' ? study.phase : undefined,
-    conditions: study.type === 'clinicaltrials' ? study.conditions : undefined,
-    interventions: study.type === 'clinicaltrials' ? study.interventions : undefined,
+    study_type: study.studyType,
+    abstract: 'abstract' in study ? study.abstract : null,
+    year: 'year' in study ? study.year : null,
+    authors: 'authors' in study ? study.authors : null,
+    journal: 'journal' in study ? study.journal : null,
+    doi: 'doi' in study ? study.doi : null,
+    pmid: study.type === 'pubmed' ? study.pmid : null,
+    nct_id: study.type === 'clinicaltrials' ? study.nctId : null,
+    status: study.type === 'clinicaltrials' ? study.status : null,
+    phase: study.type === 'clinicaltrials' ? study.phase : null,
+    conditions: study.type === 'clinicaltrials' ? study.conditions : null,
+    interventions: study.type === 'clinicaltrials' ? study.interventions : null,
+    enrollment: null,
+    start_date: null,
+    completion_date: null,
+    url: null,
   }))
 
-  // Use bulk insert (handles INSERT OR IGNORE for deduplication)
-  await Studies.bulkInsert(db, studyRecords)
+  const response = await fetch(`${config.apiUrl}/api/internal/studies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.apiSecret,
+    },
+    body: JSON.stringify({ studies: studyRecords }),
+  })
 
-  return studyRecords.length
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to insert studies: ${response.status} ${error}`)
+  }
+
+  const result = await response.json() as { success: boolean; count: number }
+  return result.count
 }
 
 /**
@@ -131,102 +149,88 @@ function getStudyId(study: PageRecord['studies'][number]): string {
 }
 
 /**
- * Insert page sections.
+ * Insert page sections via HTTP.
  */
 async function insertSections(
-  peptideId: string,
+  peptideSlug: string,
   sections: PageRecord['sections'],
-  db: D1Database
+  config: DatabaseWriteConfig
 ): Promise<number> {
   if (sections.length === 0) return 0
 
-  // Delete existing sections for this peptide
-  await db
-    .prepare('DELETE FROM page_sections WHERE peptide_id = ?')
-    .bind(peptideId)
-    .run()
+  const response = await fetch(`${config.apiUrl}/api/internal/sections`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.apiSecret,
+    },
+    body: JSON.stringify({
+      peptideSlug,
+      sections: sections.map((section) => ({
+        title: section.title,
+        contentHtml: section.contentHtml,
+        plainLanguageSummary: section.plainLanguageSummary,
+        order: section.order,
+      })),
+    }),
+  })
 
-  // Insert new sections
-  const statements = sections.map((section) =>
-    db
-      .prepare(
-        `INSERT INTO page_sections (id, peptide_id, title, content_html, section_order)
-         VALUES (?, ?, ?, ?, ?)`
-      )
-      .bind(
-        crypto.randomUUID(),
-        peptideId,
-        section.title,
-        section.contentHtml,
-        section.order
-      )
-  )
-
-  await db.batch(statements)
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to insert sections: ${response.status} ${error}`)
+  }
 
   return sections.length
 }
 
 /**
- * Log change to audit trail.
+ * Log change to audit trail via HTTP.
  */
 async function logChange(
   peptideId: string,
   version: number,
-  db: D1Database
+  config: DatabaseWriteConfig
 ): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO changelog (id, peptide_id, version, changed_by, change_type, change_summary)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      crypto.randomUUID(),
+  const response = await fetch(`${config.apiUrl}/api/internal/changelog`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.apiSecret,
+    },
+    body: JSON.stringify({
       peptideId,
       version,
-      'system',
-      'publish',
-      `Published version ${version} via research pipeline`
-    )
-    .run()
+      changeType: 'publish',
+      changeSummary: `Published version ${version} via research pipeline`,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to log change: ${response.status} ${error}`)
+  }
 }
 
 /**
- * Rollback database changes.
+ * Rollback database changes via HTTP.
  * Used when PDF upload or other steps fail.
  */
 export async function rollbackDatabase(
   peptideId: string,
-  db: D1Database
+  config: DatabaseWriteConfig
 ): Promise<void> {
   try {
-    // Delete sections
-    await db
-      .prepare('DELETE FROM page_sections WHERE peptide_id = ?')
-      .bind(peptideId)
-      .run()
+    const response = await fetch(`${config.apiUrl}/api/internal/peptide/${peptideId}`, {
+      method: 'DELETE',
+      headers: {
+        'X-Internal-Secret': config.apiSecret,
+      },
+    })
 
-    // Delete peptide
-    await db
-      .prepare('DELETE FROM peptides WHERE id = ?')
-      .bind(peptideId)
-      .run()
-
-    // Log rollback
-    await db
-      .prepare(
-        `INSERT INTO changelog (id, peptide_id, version, changed_by, change_type, change_summary)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        crypto.randomUUID(),
-        peptideId,
-        0,
-        'system',
-        'rollback',
-        'Rolled back due to publish failure'
-      )
-      .run()
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Rollback failed: ${response.status} ${error}`)
+    }
   } catch (error) {
     console.error('Rollback failed:', error)
     // Don't throw - rollback is best-effort

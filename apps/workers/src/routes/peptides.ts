@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono'
-import { Peptides, Studies } from '@peptalk/database'
+import { peptides as Peptides, studies as Studies, categories } from '@peptalk/database'
 import type { Bindings, SearchParams } from '../types'
 
 export const peptides = new Hono<{ Bindings: Bindings }>()
@@ -64,43 +64,53 @@ peptides.get('/:slug', async (c) => {
 
     // Get sections
     const sections = await db
-      .prepare('SELECT title, content_html, section_order FROM page_sections WHERE peptide_id = ? ORDER BY section_order ASC')
-      .bind(peptide.id)
+      .prepare('SELECT title, content_html, plain_language_summary, section_order FROM page_sections WHERE peptide_id = ? ORDER BY section_order ASC')
+      .bind(slug)
       .all()
 
     // Get studies
-    const studies = await Studies.listByPeptide(db, peptide.id, { limit: 100 })
+    const studies = await Studies.getByPeptide(db, slug)
 
     // Get legal notes
     const legalNotesResult = await db
-      .prepare('SELECT note FROM legal_notes WHERE peptide_id = ? ORDER BY id ASC')
-      .bind(peptide.id)
+      .prepare('SELECT note_text FROM legal_notes WHERE peptide_id = ? ORDER BY note_order ASC')
+      .bind(slug)
       .all()
 
-    const legalNotes = legalNotesResult.results.map((row: any) => row.note)
+    const legalNotes = legalNotesResult.results.map((row: any) => row.note_text)
+
+    // Get categories for this peptide
+    const peptideCategories = await categories.getPeptideCategories(db, slug)
 
     return c.json({
       slug: peptide.slug,
       name: peptide.name,
       aliases: peptide.aliases,
-      evidenceGrade: peptide.evidenceGrade,
-      summaryHtml: peptide.summaryHtml,
+      evidenceGrade: peptide.evidence_grade,
+      summaryHtml: peptide.summary_html,
       sections: sections.results.map((s: any) => ({
         title: s.title,
         contentHtml: s.content_html,
+        plainLanguageSummary: s.plain_language_summary,
         order: s.section_order,
       })),
       studies: studies.map((s) => ({
         type: s.type,
         title: s.title,
-        studyType: s.studyType,
+        studyType: s.study_type,
         pmid: s.pmid,
-        nctId: s.nctId,
+        nctId: s.nct_id,
       })),
-      humanRctCount: peptide.humanRctCount,
-      animalCount: peptide.animalCount,
+      categories: peptideCategories.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        icon: c.icon,
+        confidence: c.confidence,
+      })),
+      humanRctCount: peptide.human_rct_count,
+      animalCount: peptide.animal_count,
       legalNotes,
-      lastUpdated: peptide.lastUpdated,
+      lastUpdated: peptide.last_updated,
       version: peptide.version,
     })
   } catch (error) {
@@ -124,7 +134,7 @@ peptides.get('/:slug/studies', async (c) => {
       return c.json({ error: 'Peptide not found' }, 404)
     }
 
-    const studies = await Studies.listByPeptide(db, peptide.id, { limit: 1000 })
+    const studies = await Studies.getByPeptide(db, slug)
 
     return c.json({ studies })
   } catch (error) {
