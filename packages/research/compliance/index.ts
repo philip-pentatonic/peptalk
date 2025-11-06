@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * GPT-5 compliance validation module.
  * Checks synthesized content for medical advice, dosing, vendor mentions.

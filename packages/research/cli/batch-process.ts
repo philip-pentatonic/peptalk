@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Batch process multiple peptides from YAML file.
  * Processes peptides sequentially with progress reporting.

@@ -1,0 +1,249 @@
+/**
+ * WHO ICTRP (International Clinical Trials Registry Platform) Client
+ * Fetches clinical trial data from WHO's global registry aggregator
+ *
+ * WHO ICTRP aggregates 17 trial registries from around the world including:
+ * - ANZCTR (Australia/New Zealand)
+ * - ChiCTR (China)
+ * - ClinicalTrials.gov (USA)
+ * - CTRI (India)
+ * - DRKS (Germany)
+ * - EudraCT (European Union)
+ * - IRCT (Iran)
+ * - ISRCTN (UK)
+ * - JPRN (Japan)
+ * - KCT (South Korea)
+ * - NTR (Netherlands)
+ * - PACTR (Pan African)
+ * - RPCEC (Cuba)
+ * - ReBec (Brazil)
+ * - REPEC (Peru)
+ * - SLCTR (Sri Lanka)
+ * - TCTR (Thailand)
+ */
+
+import type { ClinicalTrialStudy } from '@peptalk/schemas'
+
+export interface WHOICTRPConfig {
+  maxResults?: number
+}
+
+export interface WHOICTRPSearchResult {
+  trials: ClinicalTrialStudy[]
+  totalFound: number
+  source: 'who-ictrp'
+}
+
+/**
+ * WHO ICTRP search endpoint
+ * Note: WHO ICTRP API requires authentication and has rate limits
+ * For now, we'll use their public search interface
+ */
+const ICTRP_SEARCH_URL = 'https://trialsearch.who.int/api/v1/search'
+
+/**
+ * Search WHO ICTRP for clinical trials related to a peptide
+ */
+export async function searchWHOICTRP(
+  peptideName: string,
+  aliases: string[],
+  config: WHOICTRPConfig = {}
+): Promise<WHOICTRPSearchResult> {
+  const maxResults = config.maxResults || 50
+  const searchTerms = [peptideName, ...aliases].filter(Boolean)
+
+  console.log(`[WHO ICTRP] Searching for: ${searchTerms.join(', ')}`)
+
+  try {
+    const trials: ClinicalTrialStudy[] = []
+
+    // Search for each term
+    for (const term of searchTerms) {
+      const termTrials = await searchSingleTerm(term, maxResults)
+      trials.push(...termTrials)
+
+      // Respect rate limits - wait 1 second between queries
+      if (searchTerms.indexOf(term) < searchTerms.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+
+    // Deduplicate by trial ID
+    const uniqueTrials = deduplicateTrials(trials)
+
+    console.log(`[WHO ICTRP] Found ${uniqueTrials.length} unique trials`)
+
+    return {
+      trials: uniqueTrials,
+      totalFound: uniqueTrials.length,
+      source: 'who-ictrp',
+    }
+  } catch (error) {
+    console.error('[WHO ICTRP] Search failed:', error)
+    return {
+      trials: [],
+      totalFound: 0,
+      source: 'who-ictrp',
+    }
+  }
+}
+
+/**
+ * Search WHO ICTRP for a single search term
+ */
+async function searchSingleTerm(
+  searchTerm: string,
+  maxResults: number
+): Promise<ClinicalTrialStudy[]> {
+  try {
+    const params = new URLSearchParams({
+      q: searchTerm,
+      size: String(Math.min(maxResults, 100)), // API limit
+      format: 'json',
+    })
+
+    const response = await fetch(`${ICTRP_SEARCH_URL}?${params}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'PepTalk-Research/1.0',
+      },
+    })
+
+    if (!response.ok) {
+      console.warn(`[WHO ICTRP] API returned ${response.status} for "${searchTerm}"`)
+      return []
+    }
+
+    const data: any = await response.json()
+
+    if (!data || !data.results || !Array.isArray(data.results)) {
+      return []
+    }
+
+    return data.results.map((trial: any) => parseWHOTrial(trial))
+  } catch (error) {
+    console.error(`[WHO ICTRP] Failed to search for "${searchTerm}":`, error)
+    return []
+  }
+}
+
+/**
+ * Parse WHO ICTRP trial data into our standard format
+ */
+function parseWHOTrial(trial: any): ClinicalTrialStudy {
+  // Extract trial ID - WHO ICTRP provides IDs from various registries
+  const trialId = trial.TrialID || trial.trial_id || 'unknown'
+
+  // Determine source registry from trial ID prefix
+  let sourceRegistry = 'WHO-ICTRP'
+  if (trialId.startsWith('NCT')) sourceRegistry = 'ClinicalTrials.gov'
+  else if (trialId.startsWith('EUCTR')) sourceRegistry = 'EudraCT'
+  else if (trialId.startsWith('CTRI')) sourceRegistry = 'CTRI-India'
+  else if (trialId.startsWith('ChiCTR')) sourceRegistry = 'ChiCTR-China'
+  else if (trialId.startsWith('JPRN')) sourceRegistry = 'JPRN-Japan'
+  else if (trialId.startsWith('KCT')) sourceRegistry = 'KCT-Korea'
+  else if (trialId.startsWith('ISRCTN')) sourceRegistry = 'ISRCTN-UK'
+
+  // Convert to NCT format if it's actually from ClinicalTrials.gov
+  // For non-NCT trials, we'll use a synthetic NCT ID (this is a temporary workaround)
+  const nctId = trialId.startsWith('NCT')
+    ? trialId
+    : `NCT00000000` // Placeholder - TODO: Handle non-NCT trials properly
+
+  return {
+    id: `NCT:${nctId}`,
+    type: 'clinicaltrials' as const,
+    title: trial.public_title || trial.scientific_title || 'No title',
+    studyType: 'clinical_trial', // WHO ICTRP trials are clinical trials by definition
+    nctId,
+    status: normalizeStatus(trial.recruitment_status),
+    phase: normalizePhase(trial.phase),
+    conditions: parseConditions(trial.condition || trial.health_condition),
+    interventions: parseInterventions(trial.intervention || trial.interventions),
+    enrollment: parseInt(trial.target_size || trial.enrollment || '0') || undefined,
+    startDate: trial.date_registration || trial.date_enrollement,
+    completionDate: trial.date_completed || trial.results_date_completed,
+    url: `https://trialsearch.who.int/Trial2.aspx?TrialID=${trialId}`,
+  }
+}
+
+/**
+ * Normalize recruitment status from WHO ICTRP to our standard format
+ */
+function normalizeStatus(status: string | undefined): string {
+  if (!status) return 'Unknown'
+
+  const s = status.toLowerCase()
+  if (s.includes('recruit')) return 'Recruiting'
+  if (s.includes('complete') || s.includes('finish')) return 'Completed'
+  if (s.includes('active') || s.includes('ongoing')) return 'Active'
+  if (s.includes('suspend') || s.includes('hold')) return 'Suspended'
+  if (s.includes('terminat') || s.includes('withdrawn')) return 'Terminated'
+  if (s.includes('not yet')) return 'Not yet recruiting'
+
+  return status
+}
+
+/**
+ * Normalize phase from WHO ICTRP format
+ */
+function normalizePhase(phase: string | undefined): string | undefined {
+  if (!phase) return undefined
+
+  const p = phase.toLowerCase()
+  if (p.includes('1')) return 'Phase 1'
+  if (p.includes('2')) return 'Phase 2'
+  if (p.includes('3')) return 'Phase 3'
+  if (p.includes('4')) return 'Phase 4'
+  if (p.includes('early') || p.includes('0')) return 'Early Phase 1'
+
+  return phase
+}
+
+/**
+ * Parse conditions field into array
+ */
+function parseConditions(conditions: any): string[] {
+  if (!conditions) return []
+
+  if (Array.isArray(conditions)) {
+    return conditions.map(c => String(c)).filter(Boolean)
+  }
+
+  if (typeof conditions === 'string') {
+    return conditions.split(/[;,]/).map(c => c.trim()).filter(Boolean)
+  }
+
+  return []
+}
+
+/**
+ * Parse interventions field into array
+ */
+function parseInterventions(interventions: any): string[] {
+  if (!interventions) return []
+
+  if (Array.isArray(interventions)) {
+    return interventions.map(i => String(i)).filter(Boolean)
+  }
+
+  if (typeof interventions === 'string') {
+    return interventions.split(/[;,]/).map(i => i.trim()).filter(Boolean)
+  }
+
+  return []
+}
+
+/**
+ * Deduplicate trials by source ID
+ */
+function deduplicateTrials(trials: ClinicalTrialStudy[]): ClinicalTrialStudy[] {
+  const seen = new Set<string>()
+  return trials.filter(trial => {
+    if (seen.has(trial.sourceId)) {
+      return false
+    }
+    seen.add(trial.sourceId)
+    return true
+  })
+}

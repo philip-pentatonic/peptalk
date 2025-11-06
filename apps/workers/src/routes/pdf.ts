@@ -4,10 +4,51 @@
  */
 
 import { Hono } from 'hono'
-import { Peptides } from '@peptalk/database'
+import { getCookie } from 'hono/cookie'
+import { peptides as Peptides } from '@peptalk/database'
 import type { Bindings } from '../types'
 
 export const pdf = new Hono<{ Bindings: Bindings }>()
+
+/**
+ * Verify user authentication and subscription status
+ */
+async function verifyAuth(c: any) {
+  const sessionId = getCookie(c, 'session_id')
+
+  if (!sessionId) {
+    return null
+  }
+
+  const db = c.env.DB
+
+  // Find active session
+  const session = await db
+    .prepare('SELECT * FROM sessions WHERE id = ? AND expires_at > ?')
+    .bind(sessionId, new Date().toISOString())
+    .first()
+
+  if (!session) {
+    return null
+  }
+
+  // Get user with subscription status
+  const user = await db
+    .prepare('SELECT * FROM users WHERE id = ?')
+    .bind(session.user_id)
+    .first()
+
+  if (!user) {
+    return null
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    subscriptionStatus: user.subscription_status,
+    subscriptionActive: user.subscription_status === 'active',
+  }
+}
 
 /**
  * GET /api/pdf/:slug
@@ -27,11 +68,15 @@ pdf.get('/:slug', async (c) => {
       return c.json({ error: 'Peptide not found' }, 404)
     }
 
-    // TODO: Verify user is authenticated and has active subscription
-    // const user = await verifyAuth(c)
-    // if (!user || !user.subscriptionActive) {
-    //   return c.json({ error: 'Subscription required' }, 403)
-    // }
+    // Verify user is authenticated and has active subscription
+    const user = await verifyAuth(c)
+    if (!user) {
+      return c.json({ error: 'Authentication required' }, 401)
+    }
+
+    if (!user.subscriptionActive) {
+      return c.json({ error: 'Active subscription required' }, 403)
+    }
 
     // Generate R2 key
     const pdfKey = `pdfs/${slug}/${slug}-v${peptide.version}.pdf`

@@ -2,10 +2,9 @@ name = "peptalk-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 account_id = "ec358c7d7cf76532fe1a4160b10a8247"
+workers_dev = true
 
-# Workers configuration
-[build]
-command = "pnpm build"
+# Workers configuration (no build needed - uses TypeScript directly)
 
 # D1 Database bindings
 [[d1_databases]]
@@ -32,6 +31,27 @@ ENVIRONMENT = "production"
 # - RESEND_API_KEY
 # - STRIPE_API_KEY
 # - STRIPE_WEBHOOK_SECRET
+# - PUBMED_EMAIL
+# - PUBMED_API_KEY
+# - ANTHROPIC_API_KEY
+# - OPENAI_API_KEY
+# - CRON_SECRET
+# - INTERNAL_API_SECRET
+# - R2_PUBLIC_URL
+
+# Cron triggers
+[triggers]
+crons = ["0 0 * * SUN"]  # Every Sunday at midnight UTC
+
+# Queue bindings
+[[queues.producers]]
+queue = "research-pipeline"
+binding = "RESEARCH_QUEUE"
+
+[[queues.consumers]]
+queue = "research-pipeline"
+max_batch_size = 1
+max_batch_timeout = 30
 
 # Development configuration
 [env.development]

@@ -1,0 +1,18 @@
+{
+  "runtime": "edge",
+  "name": "peptides/[slug]",
+  "deploymentTarget": "v8-worker",
+  "entrypoint": "index.js",
+  "assets": [],
+  "framework": {
+    "slug": "nextjs",
+    "version": "14.2.33"
+  },
+  "environment": {
+    "__NEXT_BUILD_ID": "Jzee2rVLYHBuWBwFjTcX5",
+    "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "xlQkenN8d/9H9q/krVoeEd2WgUFIq/5fwTy+TjcBU8I=",
+    "__NEXT_PREVIEW_MODE_ID": "6431cf6f6f7a2b3fe7e34d594c14b952",
+    "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "f5f613e6e223049eaa3a582b7f60ded40b6af8eebda8fe9d15f5bf229c4e68cf",
+    "__NEXT_PREVIEW_MODE_SIGNING_KEY": "057c2b8068098043385208ac55ce34e87cd9201d4e7352495f434ac1fe535e89"
+  }
+}

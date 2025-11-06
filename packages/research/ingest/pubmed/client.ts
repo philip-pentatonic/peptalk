@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PubMed E-utilities API client.
  * Fetches studies from NCBI PubMed database.

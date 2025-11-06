@@ -15,6 +15,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@peptalk/auth": "workspace:*",
     "@peptalk/database": "workspace:*",
     "@peptalk/schemas": "workspace:*",
     "@peptalk/payments": "workspace:*",

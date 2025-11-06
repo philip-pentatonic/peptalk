@@ -3,10 +3,10 @@
  * Orchestrates PDF generation, database insertion, and R2 upload.
  */
 
-import type { D1Database, R2Bucket } from '@cloudflare/workers-types'
+import type { R2Bucket } from '@cloudflare/workers-types'
 import type { PageRecord } from '@peptalk/schemas'
 import { generatePdf, type PdfConfig } from './pdf-generator'
-import { writeToDatabase, rollbackDatabase, type DatabaseWriteResult } from './database-writer'
+import { writeToDatabase, rollbackDatabase, type DatabaseWriteResult, type DatabaseWriteConfig } from './database-writer'
 import { uploadPdf, deletePdf, type R2UploadResult } from './r2-storage'
 
 export * from './pdf-generator'
@@ -14,9 +14,14 @@ export * from './database-writer'
 export * from './r2-storage'
 
 export interface PublishConfig {
-  db: D1Database
-  r2Bucket: R2Bucket
+  // Database API config (replaces direct D1 access)
+  database: DatabaseWriteConfig
+
+  // R2 storage (can be null if using HTTP API)
+  r2Bucket: R2Bucket | null
   r2PublicUrl?: string
+
+  // PDF generation config
   pdfConfig?: PdfConfig
 }
 
@@ -38,7 +43,7 @@ export interface PublishResult {
  *
  * Steps:
  * 1. Generate PDF from HTML content
- * 2. Write peptide + studies to D1
+ * 2. Write peptide + studies to D1 via HTTP API
  * 3. Upload PDF to R2
  * 4. Return success with URLs
  *
@@ -57,34 +62,50 @@ export async function publish(
     const pdfResult = await generatePdf(pageRecord, config.pdfConfig)
     console.log(`[Publisher] PDF generated: ${pdfResult.sizeBytes} bytes, ${pdfResult.pageCount} pages`)
 
-    // Step 2: Write to database
-    console.log(`[Publisher] Writing to database...`)
-    const dbResult = await writeToDatabase(pageRecord, config.db)
+    // Step 2: Write to database via HTTP API
+    console.log(`[Publisher] Writing to database via HTTP API...`)
+    const dbResult = await writeToDatabase(pageRecord, config.database)
     peptideId = dbResult.peptideId
     console.log(
       `[Publisher] Database write complete: ${dbResult.studiesInserted} studies, ${dbResult.sectionsInserted} sections`
     )
 
-    // Step 3: Upload PDF to R2
-    console.log(`[Publisher] Uploading PDF to R2...`)
-    const r2Result = await uploadPdf(pageRecord.slug, pdfResult.buffer, {
-      bucket: config.r2Bucket,
-      publicUrl: config.r2PublicUrl,
-    })
-    pdfKey = r2Result.key
-    console.log(`[Publisher] PDF uploaded: ${r2Result.url}`)
+    // Step 3: Upload PDF to R2 (if R2 bucket is available)
+    if (config.r2Bucket) {
+      console.log(`[Publisher] Uploading PDF to R2...`)
+      const r2Result = await uploadPdf(pageRecord.slug, pdfResult.buffer, {
+        bucket: config.r2Bucket,
+        publicUrl: config.r2PublicUrl,
+      })
+      pdfKey = r2Result.key
+      console.log(`[Publisher] PDF uploaded: ${r2Result.url}`)
 
-    // Success!
-    return {
-      success: true,
-      peptideId,
-      pdfUrl: r2Result.url,
-      database: dbResult,
-      pdf: {
-        sizeBytes: pdfResult.sizeBytes,
-        pageCount: pdfResult.pageCount,
-        key: r2Result.key,
-      },
+      // Success with PDF!
+      return {
+        success: true,
+        peptideId,
+        pdfUrl: r2Result.url,
+        database: dbResult,
+        pdf: {
+          sizeBytes: pdfResult.sizeBytes,
+          pageCount: pdfResult.pageCount,
+          key: r2Result.key,
+        },
+      }
+    } else {
+      // Success without PDF (R2 not available yet)
+      console.log(`[Publisher] Skipping R2 upload (R2 bucket not configured)`)
+      return {
+        success: true,
+        peptideId,
+        pdfUrl: '', // No PDF URL yet
+        database: dbResult,
+        pdf: {
+          sizeBytes: pdfResult.sizeBytes,
+          pageCount: pdfResult.pageCount,
+          key: '',
+        },
+      }
     }
   } catch (error) {
     console.error(`[Publisher] Publish failed:`, error)
@@ -92,10 +113,10 @@ export async function publish(
     // Rollback on failure
     if (peptideId) {
       console.log(`[Publisher] Rolling back database changes for ${peptideId}...`)
-      await rollbackDatabase(peptideId, config.db)
+      await rollbackDatabase(peptideId, config.database)
     }
 
-    if (pdfKey) {
+    if (pdfKey && config.r2Bucket) {
       console.log(`[Publisher] Deleting uploaded PDF ${pdfKey}...`)
       await deletePdf(pageRecord.slug, config.r2Bucket)
     }

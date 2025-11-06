@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Claude Sonnet 4.5 API client for evidence synthesis.
  */

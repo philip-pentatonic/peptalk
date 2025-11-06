@@ -11,16 +11,12 @@
     "exactOptionalPropertyTypes": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "allowImportingTsExtensions": false,
-    "paths": {
-      "@peptalk/schemas": ["../schemas/dist"],
-      "@peptalk/database": ["../database/dist"]
-    }
+    "allowImportingTsExtensions": false
   },
   "references": [
     { "path": "../schemas" },
     { "path": "../database" }
   ],
-  "include": ["ingest/**/*", "synthesis/**/*", "compliance/**/*", "rubric/**/*", "publisher/**/*", "cli/**/*"],
+  "include": ["ingest/**/*", "synthesis/**/*", "compliance/**/*", "rubric/**/*", "publisher/**/*", "cli/**/*", "server.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

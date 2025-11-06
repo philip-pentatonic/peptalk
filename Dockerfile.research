@@ -1,5 +1,5 @@
 # Dockerfile for Research Pipeline Service
-# Deploys to Railway for async research job processing
+# Deploys to Fly.io for async research job processing
 
 FROM node:20-slim
 
@@ -29,31 +29,25 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 
-# Copy package files and TypeScript configs
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
-COPY packages/research/package.json packages/research/tsconfig.json ./packages/research/
-COPY packages/schemas/package.json packages/schemas/tsconfig.json ./packages/schemas/
-COPY packages/database/package.json packages/database/tsconfig.json ./packages/database/
-
 # Install pnpm
 RUN npm install -g pnpm@9
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Copy workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json .npmrc ./
 
-# Copy source code
+# Copy all package source code first (so pnpm knows they're workspace packages)
 COPY packages/research ./packages/research
 COPY packages/schemas ./packages/schemas
 COPY packages/database ./packages/database
 
-# Build all workspace packages in dependency order
-# Use pnpm's filtering to build in topological order (dependencies first)
-RUN pnpm --filter @peptalk/schemas build && \
-    pnpm --filter @peptalk/database build && \
-    pnpm --filter @peptalk/research build
+# Install dependencies - now pnpm can properly link workspace packages
+RUN pnpm install --frozen-lockfile
+
+# Build all workspace packages using TypeScript project references
+WORKDIR /app/packages/research
+RUN npx tsc --build
 
 EXPOSE 3000
 
-# Run the server with tsx from the research package directory
-WORKDIR /app/packages/research
+# Run the server with tsx
 CMD ["pnpm", "exec", "tsx", "server.ts"]

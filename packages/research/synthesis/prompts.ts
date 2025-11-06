@@ -27,6 +27,13 @@ OUTPUT STRUCTURE:
 - Mechanisms section (how it works, if known)
 - Safety & Side Effects section (adverse events reported)
 
+PLAIN LANGUAGE SUMMARIES:
+For each section, provide a plain-language summary that explains the technical content in simple terms for non-scientists.
+- Write in conversational language (8th-grade reading level)
+- Avoid jargon and technical terms
+- Keep to 2-3 sentences
+- Focus on practical implications, not technical details
+
 CITATION FORMAT:
 - PubMed: [PMID:12345678]
 - ClinicalTrials: [NCT:NCT01234567]
@@ -85,9 +92,17 @@ Total Studies: ${studies.length} (${humanStudies.length} human, ${animalStudies.
   prompt += `TASK:
 Write HTML content following the output structure in the system prompt.
 Include summary + sections for human research, animal research, mechanisms, and safety.
+For each section, include a plain-language summary that explains the technical content in simple terms.
 Cite every empirical claim with [PMID:xxx] or [NCT:xxx].
 Be honest about evidence limitations.
-Use only <p>, <ul>, <li>, <strong>, <em> tags.`
+Use only <p>, <ul>, <li>, <strong>, <em> tags.
+
+OUTPUT FORMAT:
+Structure each section as:
+###SECTION: [Section Title]
+###PLAIN_LANGUAGE: [2-3 sentence plain language summary]
+###CONTENT:
+[Technical HTML content with citations]`
 
   return prompt
 }

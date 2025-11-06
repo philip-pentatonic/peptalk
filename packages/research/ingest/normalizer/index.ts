@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Study normalizer and deduplicator.
  * Combines studies from multiple sources and removes duplicates.

@@ -102,21 +102,23 @@ export default function PeptidesPage() {
                   <h2 className="text-2xl font-semibold text-gray-900 mb-1">
                     {peptide.name}
                   </h2>
-                  {peptide.aliases.length > 0 && (
+                  {peptide.aliases && peptide.aliases.length > 0 && (
                     <p className="text-sm text-gray-500">
                       Also known as: {peptide.aliases.join(', ')}
                     </p>
                   )}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-sm font-semibold badge-${peptide.evidenceGrade.replace('_', '-')}`}>
-                  {peptide.evidenceGrade.replace('_', ' ').toUpperCase()}
-                </div>
+                {peptide.evidenceGrade && (
+                  <div className={`px-3 py-1 rounded-full text-sm font-semibold badge-${peptide.evidenceGrade.replace('_', '-')}`}>
+                    {peptide.evidenceGrade.replace('_', ' ').toUpperCase()}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center space-x-6 text-sm text-gray-600 mb-3">
-                <span>{peptide.humanRctCount} Human RCTs</span>
+                <span>{peptide.humanRctCount || 0} Human RCTs</span>
                 <span>•</span>
-                <span>{peptide.animalCount} Animal Studies</span>
+                <span>{peptide.animalCount || 0} Animal Studies</span>
               </div>
 
               <div

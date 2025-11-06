@@ -112,7 +112,10 @@ function loadConfig(): ProcessPeptideConfig {
       model: 'gpt-5',
     },
     publish: {
-      db: placeholderDb,
+      database: {
+        apiUrl: process.env.CLOUDFLARE_API_URL || 'http://localhost:8787',
+        apiSecret: process.env.INTERNAL_API_SECRET || 'test-secret',
+      },
       r2Bucket: placeholderR2,
       r2PublicUrl: process.env.R2_PUBLIC_URL,
     },

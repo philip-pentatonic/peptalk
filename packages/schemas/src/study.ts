@@ -37,7 +37,7 @@ export const ClinicalTrialStudySchema = BaseStudySchema.extend({
   phase: z.string().optional(),
   conditions: z.array(z.string()),
   interventions: z.array(z.string()),
-  enrollment: z.number().int().positive().optional(),
+  enrollment: z.number().int().min(0).optional(),
   startDate: z.string().optional(),
   completionDate: z.string().optional(),
   url: z.string().url().optional(),
@@ -100,5 +100,5 @@ export function getCitation(study: Study): string {
     return `ClinicalTrials.gov: ${study.nctId}`
   }
 
-  return study.title
+  return (study as PubMedStudy | ClinicalTrialStudy).title
 }

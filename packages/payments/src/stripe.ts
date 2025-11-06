@@ -18,7 +18,7 @@ export interface StripeConfig {
  */
 export function initStripe(apiKey: string): Stripe {
   return new Stripe(apiKey, {
-    apiVersion: '2024-11-20.acacia',
+    apiVersion: '2023-10-16',
     httpClient: Stripe.createFetchHttpClient(),
   })
 }
@@ -109,7 +109,7 @@ export function parseSubscriptionCreated(
     userId,
     subscriptionId: subscription.id,
     customerId: subscription.customer as string,
-    priceId: subscription.items.data[0].price.id,
+    priceId: subscription.items.data[0]?.price.id || '',
     status: subscription.status,
     currentPeriodStart: new Date(subscription.current_period_start * 1000),
     currentPeriodEnd: new Date(subscription.current_period_end * 1000),

@@ -1,19 +1,48 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
+    // Type Checking
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Module Resolution
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+
+    // Emit
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "types": ["@cloudflare/workers-types"],
+    "sourceMap": true,
     "noEmit": false,
-    "allowImportingTsExtensions": false,
+    "composite": true,
+
+    // Interop
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Skip Lib Check
+    "skipLibCheck": true,
+
+    // Path Mapping
     "baseUrl": "..",
     "paths": {
       "@peptalk/schemas": ["schemas/dist/index.d.ts"],
       "@peptalk/schemas/*": ["schemas/dist/*"]
-    }
+    },
+
+    // Types
+    "types": ["@cloudflare/workers-types"]
   },
   "references": [
     { "path": "../schemas" }

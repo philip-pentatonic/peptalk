@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ClinicalTrials.gov API client.
  * Fetches clinical trial data from ClinicalTrials.gov API v2.

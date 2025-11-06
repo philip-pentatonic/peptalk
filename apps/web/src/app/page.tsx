@@ -127,10 +127,10 @@ export default function HomePage() {
             Subscribe for unlimited access to complete peptide pages with PDF downloads, detailed studies, and regular updates.
           </p>
           <a
-            href="/subscribe"
+            href="/pricing"
             className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
           >
-            Subscribe - $99/year
+            View Pricing
           </a>
           <p className="text-sm text-gray-500 mt-4">
             7-day money-back guarantee • Cancel anytime
