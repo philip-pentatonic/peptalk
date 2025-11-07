@@ -88,75 +88,79 @@ news.get('/', async (c) => {
   }
 })
 
+// ============================================================================
+// Trending Peptides
+// ============================================================================
+
 /**
- * Get single news item
- * GET /api/news/:id
+ * Get trending peptides
+ * GET /api/news/trending?period=7d&limit=10
  */
-news.get('/:id', async (c) => {
-  const newsId = c.req.param('id')
-  const userId = c.req.query('userId')
+news.get('/trending', async (c) => {
+  const period = c.req.query('period') || '7d' // 7d, 30d
+  const limit = parseInt(c.req.query('limit') || '10')
 
   try {
     const db = c.env.DB
 
-    const newsItem = await db
-      .prepare('SELECT * FROM peptide_news WHERE id = ?')
-      .bind(newsId)
-      .first()
-
-    if (!newsItem) {
-      return c.json({ error: 'News item not found' }, 404)
-    }
-
-    // Check if read by user
-    let read = false
-    if (userId) {
-      const readRecord = await db
-        .prepare('SELECT 1 FROM user_news_read WHERE user_id = ? AND news_id = ?')
-        .bind(userId, newsId)
-        .first()
-
-      read = !!readRecord
-    }
+    // For now, use simple metrics-based trending
+    // In production, you'd calculate trending score based on multiple factors
+    const result = await db
+      .prepare(
+        `SELECT
+           pm.peptide_slug,
+           p.name,
+           pm.view_count,
+           pm.save_count,
+           pm.search_count,
+           (pm.save_count * 3 + pm.view_count + pm.search_count * 2) as trending_score
+         FROM peptide_metrics pm
+         JOIN peptides p ON pm.peptide_slug = p.slug
+         ORDER BY trending_score DESC
+         LIMIT ?`
+      )
+      .bind(limit)
+      .all()
 
     return c.json({
-      ...newsItem,
-      read,
+      data: result.results || [],
+      period,
     })
   } catch (error) {
-    console.error('Error fetching news item:', error)
-    return c.json({ error: 'Failed to fetch news item' }, 500)
+    console.error('Error fetching trending peptides:', error)
+    return c.json({ error: 'Failed to fetch trending peptides' }, 500)
   }
 })
 
 /**
- * Mark news item as read
- * POST /api/news/:id/read
+ * Get latest news summary (for homepage/dashboard)
+ * GET /api/news/latest?limit=5
  */
-news.post('/:id/read', async (c) => {
-  const newsId = c.req.param('id')
-  const userId = c.req.query('userId')
-
-  if (!userId) {
-    return c.json({ error: 'userId is required' }, 400)
-  }
+news.get('/latest', async (c) => {
+  const limit = parseInt(c.req.query('limit') || '5')
 
   try {
     const db = c.env.DB
 
-    await db
+    const result = await db
       .prepare(
-        `INSERT INTO user_news_read (user_id, news_id)
-         VALUES (?, ?)
-         ON CONFLICT(user_id, news_id) DO NOTHING`
+        `SELECT
+           n.*,
+           p.name as peptide_name
+         FROM peptide_news n
+         LEFT JOIN peptides p ON n.peptide_slug = p.slug
+         ORDER BY n.published_at DESC
+         LIMIT ?`
       )
-      .bind(userId, newsId)
-      .run()
+      .bind(limit)
+      .all()
 
-    return c.json({ success: true })
+    return c.json({
+      data: result.results || [],
+    })
   } catch (error) {
-    console.error('Error marking news as read:', error)
-    return c.json({ error: 'Failed to mark news as read' }, 500)
+    console.error('Error fetching latest news:', error)
+    return c.json({ error: 'Failed to fetch latest news' }, 500)
   }
 })
 
@@ -244,79 +248,75 @@ news.get('/my-peptides', async (c) => {
   }
 })
 
-// ============================================================================
-// Trending Peptides
-// ============================================================================
-
 /**
- * Get trending peptides
- * GET /api/news/trending?period=7d&limit=10
+ * Get single news item
+ * GET /api/news/:id
  */
-news.get('/trending', async (c) => {
-  const period = c.req.query('period') || '7d' // 7d, 30d
-  const limit = parseInt(c.req.query('limit') || '10')
+news.get('/:id', async (c) => {
+  const newsId = c.req.param('id')
+  const userId = c.req.query('userId')
 
   try {
     const db = c.env.DB
 
-    // For now, use simple metrics-based trending
-    // In production, you'd calculate trending score based on multiple factors
-    const result = await db
-      .prepare(
-        `SELECT
-           pm.peptide_slug,
-           p.name,
-           pm.view_count,
-           pm.save_count,
-           pm.search_count,
-           (pm.save_count * 3 + pm.view_count + pm.search_count * 2) as trending_score
-         FROM peptide_metrics pm
-         JOIN peptides p ON pm.peptide_slug = p.slug
-         ORDER BY trending_score DESC
-         LIMIT ?`
-      )
-      .bind(limit)
-      .all()
+    const newsItem = await db
+      .prepare('SELECT * FROM peptide_news WHERE id = ?')
+      .bind(newsId)
+      .first()
+
+    if (!newsItem) {
+      return c.json({ error: 'News item not found' }, 404)
+    }
+
+    // Check if read by user
+    let read = false
+    if (userId) {
+      const readRecord = await db
+        .prepare('SELECT 1 FROM user_news_read WHERE user_id = ? AND news_id = ?')
+        .bind(userId, newsId)
+        .first()
+
+      read = !!readRecord
+    }
 
     return c.json({
-      data: result.results || [],
-      period,
+      ...newsItem,
+      read,
     })
   } catch (error) {
-    console.error('Error fetching trending peptides:', error)
-    return c.json({ error: 'Failed to fetch trending peptides' }, 500)
+    console.error('Error fetching news item:', error)
+    return c.json({ error: 'Failed to fetch news item' }, 500)
   }
 })
 
 /**
- * Get latest news summary (for homepage/dashboard)
- * GET /api/news/latest?limit=5
+ * Mark news item as read
+ * POST /api/news/:id/read
  */
-news.get('/latest', async (c) => {
-  const limit = parseInt(c.req.query('limit') || '5')
+news.post('/:id/read', async (c) => {
+  const newsId = c.req.param('id')
+  const userId = c.req.query('userId')
+
+  if (!userId) {
+    return c.json({ error: 'userId is required' }, 400)
+  }
 
   try {
     const db = c.env.DB
 
-    const result = await db
+    await db
       .prepare(
-        `SELECT
-           n.*,
-           p.name as peptide_name
-         FROM peptide_news n
-         LEFT JOIN peptides p ON n.peptide_slug = p.slug
-         ORDER BY n.published_at DESC
-         LIMIT ?`
+        `INSERT INTO user_news_read (user_id, news_id)
+         VALUES (?, ?)
+         ON CONFLICT(user_id, news_id) DO NOTHING`
       )
-      .bind(limit)
-      .all()
+      .bind(userId, newsId)
+      .run()
 
-    return c.json({
-      data: result.results || [],
-    })
+    return c.json({ success: true })
   } catch (error) {
-    console.error('Error fetching latest news:', error)
-    return c.json({ error: 'Failed to fetch latest news' }, 500)
+    console.error('Error marking news as read:', error)
+    return c.json({ error: 'Failed to mark news as read' }, 500)
   }
 })
 
