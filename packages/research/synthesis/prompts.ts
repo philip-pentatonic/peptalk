@@ -27,12 +27,7 @@ OUTPUT STRUCTURE:
 - Mechanisms section (how it works, if known)
 - Safety & Side Effects section (adverse events reported)
 
-PLAIN LANGUAGE SUMMARIES:
-For each section, provide a plain-language summary that explains the technical content in simple terms for non-scientists.
-- Write in conversational language (8th-grade reading level)
-- Avoid jargon and technical terms
-- Keep to 2-3 sentences
-- Focus on practical implications, not technical details
+NOTE: You will generate technical content only. Plain-language summaries will be added in a separate pass.
 
 CITATION FORMAT:
 - PubMed: [PMID:12345678]
@@ -92,17 +87,24 @@ Total Studies: ${studies.length} (${humanStudies.length} human, ${animalStudies.
   prompt += `TASK:
 Write HTML content following the output structure in the system prompt.
 Include summary + sections for human research, animal research, mechanisms, and safety.
-For each section, include a plain-language summary that explains the technical content in simple terms.
 Cite every empirical claim with [PMID:xxx] or [NCT:xxx].
 Be honest about evidence limitations.
-Use only <p>, <ul>, <li>, <strong>, <em> tags.
+Use only <p>, <ul>, <li>, <strong>, <em>, <h2> tags.
 
 OUTPUT FORMAT:
-Structure each section as:
-###SECTION: [Section Title]
-###PLAIN_LANGUAGE: [2-3 sentence plain language summary]
-###CONTENT:
-[Technical HTML content with citations]`
+Start with a summary paragraph (no heading).
+Then structure each section as:
+<h2>[Section Title]</h2>
+[Technical HTML content with inline citations]
+
+Example:
+<p>Summary paragraph here with key findings [PMID:12345678].</p>
+
+<h2>Human Research</h2>
+<p>Technical content about human studies [PMID:98765432]...</p>
+
+<h2>Animal Research</h2>
+<p>Technical content about animal studies [PMID:11111111]...</p>`
 
   return prompt
 }

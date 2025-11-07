@@ -28,38 +28,13 @@ export function parseSynthesis(html: string): {
 
 /**
  * Extract sections from HTML content.
- * Looks for the new format with ###SECTION, ###PLAIN_LANGUAGE, ###CONTENT markers.
+ * Looks for <h2> headings to split sections.
  */
 function extractSections(html: string): Section[] {
   const sections: Section[] = []
 
-  // Try new format first (with ###SECTION markers)
-  const sectionRegex = /###SECTION:\s*(.*?)\s*\n###PLAIN_LANGUAGE:\s*(.*?)\s*\n###CONTENT:\s*(.*?)(?=###SECTION:|$)/gs
-  const matches = Array.from(html.matchAll(sectionRegex))
-
-  if (matches.length > 0) {
-    // New format found - parse sections with plain language summaries
-    for (let i = 0; i < matches.length; i++) {
-      const match = matches[i]
-      const title = match[1].trim()
-      const plainLanguage = match[2].trim()
-      const content = match[3].trim()
-
-      if (content) {
-        sections.push({
-          title,
-          plainLanguageSummary: plainLanguage,
-          contentHtml: content,
-          order: i,
-        })
-      }
-    }
-
-    return sections
-  }
-
-  // Fall back to old format (for backward compatibility)
-  const headingRegex = /(?:<h[23]>(.*?)<\/h[23]>|\*\*(.*?)\*\*)/g
+  // Parse sections using <h2> headings
+  const headingRegex = /<h2>(.*?)<\/h2>/g
   const headingMatches = Array.from(html.matchAll(headingRegex))
 
   if (headingMatches.length === 0) {
