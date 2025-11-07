@@ -6,7 +6,7 @@
 import type { R2Bucket } from '@cloudflare/workers-types'
 import type { PageRecord } from '@peptalk/schemas'
 import { generatePdf, type PdfConfig } from './pdf-generator'
-import { writeToDatabase, rollbackDatabase, type DatabaseWriteResult, type DatabaseWriteConfig } from './database-writer'
+import { writeToDatabase, rollbackDatabase, type DatabaseWriteResult, type DatabaseWriteConfig, type CategoryAssignment } from './database-writer'
 import { uploadPdf, deletePdf, type R2UploadResult } from './r2-storage'
 
 export * from './pdf-generator'
@@ -51,7 +51,8 @@ export interface PublishResult {
  */
 export async function publish(
   pageRecord: PageRecord,
-  config: PublishConfig
+  config: PublishConfig,
+  categories?: CategoryAssignment[]
 ): Promise<PublishResult> {
   let peptideId: string | undefined
   let pdfKey: string | undefined
@@ -64,10 +65,10 @@ export async function publish(
 
     // Step 2: Write to database via HTTP API
     console.log(`[Publisher] Writing to database via HTTP API...`)
-    const dbResult = await writeToDatabase(pageRecord, config.database)
+    const dbResult = await writeToDatabase(pageRecord, config.database, categories)
     peptideId = dbResult.peptideId
     console.log(
-      `[Publisher] Database write complete: ${dbResult.studiesInserted} studies, ${dbResult.sectionsInserted} sections`
+      `[Publisher] Database write complete: ${dbResult.studiesInserted} studies, ${dbResult.sectionsInserted} sections, ${dbResult.categoriesInserted} categories`
     )
 
     // Step 3: Upload PDF to R2 (if R2 bucket is available)
@@ -129,6 +130,7 @@ export async function publish(
         peptideId: peptideId || 'unknown',
         studiesInserted: 0,
         sectionsInserted: 0,
+        categoriesInserted: 0,
         success: false,
       },
       pdf: {

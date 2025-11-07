@@ -1,4 +1,54 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://peptalk-api.polished-glitter-23bb.workers.dev'
+
+interface TrendingPeptide {
+  peptide_slug: string
+  name: string
+  view_count: number
+  save_count: number
+  search_count: number
+  trending_score: number
+}
+
+interface NewsItem {
+  id: string
+  title: string
+  type: string
+  peptide_slug: string | null
+  summary: string | null
+  published_at: string
+}
+
 export default function HomePage() {
+  const [trending, setTrending] = useState<TrendingPeptide[]>([])
+  const [latestNews, setLatestNews] = useState<NewsItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_URL}/api/news/trending?period=7d&limit=5`)
+        .then(res => res.json())
+        .then(data => setTrending(data.data || [])),
+      fetch(`${API_URL}/api/news/latest?limit=3`)
+        .then(res => res.json())
+        .then(data => setLatestNews(data.data || []))
+    ]).finally(() => setLoading(false))
+  }, [])
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   return (
     <div className="container mx-auto px-4">
       {/* Hero Section */}
@@ -23,6 +73,94 @@ export default function HomePage() {
           >
             Learn More
           </a>
+        </div>
+      </section>
+
+      {/* Trending Peptides */}
+      <section className="py-16 border-t">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold">
+              🔥 Trending Peptides
+            </h2>
+            <Link href="/peptides" className="text-blue-600 hover:text-blue-800 font-medium">
+              View all →
+            </Link>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {trending.map((peptide, index) => (
+                <Link
+                  key={peptide.peptide_slug}
+                  href={`/peptides/${peptide.peptide_slug}`}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl font-bold text-gray-400">#{index + 1}</span>
+                    <span className="text-sm text-gray-500">↑ {peptide.save_count} saves</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {peptide.name}
+                  </h3>
+                  <div className="text-xs text-gray-500">
+                    {peptide.view_count.toLocaleString()} views
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Latest Research */}
+      <section className="py-16 border-t">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold">
+              📰 Latest Research
+            </h2>
+            <Link href="/news" className="text-blue-600 hover:text-blue-800 font-medium">
+              View all →
+            </Link>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {latestNews.map((item) => (
+                <Link
+                  key={item.id}
+                  href="/news"
+                  className="block border rounded-lg p-6 hover:shadow-md transition-shadow bg-white"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs text-gray-500">{formatDate(item.published_at)}</span>
+                        {item.peptide_slug && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            {item.peptide_slug.toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {item.title}
+                      </h3>
+                      {item.summary && (
+                        <p className="text-sm text-gray-600">{item.summary}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

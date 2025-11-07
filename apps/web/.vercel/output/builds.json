@@ -3,13 +3,13 @@
   "target": "preview",
   "argv": [
     "/Users/admin/.nvm/versions/node/v22.12.0/bin/node",
-    "/Users/admin/Library/Caches/pnpm/dlx/4925e458e6ecf736ff45d49d7fd62c2b24c302037a7ae894bd96875cba37d3ee/19a5af314e2-f11d/node_modules/.pnpm/vercel@48.8.2_typescript@4.9.5/node_modules/vercel/dist/vc.js",
+    "/Users/admin/.nvm/versions/node/v22.12.0/bin/vercel",
     "build"
   ],
   "builds": [
     {
       "require": "@vercel/next",
-      "requirePath": "/Users/admin/Library/Caches/pnpm/dlx/4925e458e6ecf736ff45d49d7fd62c2b24c302037a7ae894bd96875cba37d3ee/19a5af314e2-f11d/node_modules/.pnpm/@vercel+next@4.15.1/node_modules/@vercel/next/dist/index",
+      "requirePath": "/Users/admin/.nvm/versions/node/v22.12.0/lib/node_modules/vercel/node_modules/@vercel/next/dist/index",
       "apiVersion": 2,
       "src": "package.json",
       "use": "@vercel/next",

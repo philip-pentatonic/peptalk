@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { processPeptide } from './cli/process-peptide';
+import { processPeptide } from './cli/process-peptide.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;

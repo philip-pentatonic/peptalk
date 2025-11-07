@@ -1,0 +1,31 @@
+id,name,aliases,priority,notes
+bpc-157,BPC-157,"Body Protection Compound-157|Body Protective Compound",completed,Already processed - healing & gut health
+tb-500,TB-500,"Thymosin Beta-4|Tβ4",completed,Already processed - healing & muscle
+ghk-cu,GHK-Cu,"Copper Peptide|GHK-Copper|Glycyl-L-Histidyl-L-Lysine Copper",completed,Already processed - skin & anti-aging
+epithalon,Epithalon,"Epitalon|Epithalone",completed,Already processed - longevity
+thymosin-alpha-1,Thymosin Alpha-1,"Thymalfasin|Tα1|Zadaxin",completed,Already processed - immune support
+cjc-1295,CJC-1295,"CJC-1295 DAC|Modified GRF 1-29",high,"Growth hormone releasing hormone analog, popular for muscle growth & anti-aging"
+ipamorelin,Ipamorelin,"NNC 26-0161",high,"Growth hormone secretagogue, often stacked with CJC-1295"
+semaglutide,Semaglutide,"Ozempic|Wegovy|Rybelsus",high,"GLP-1 agonist, FDA-approved for diabetes & weight loss"
+pt-141,PT-141,"Bremelanotide|Vyleesi",high,"Melanocortin receptor agonist for sexual dysfunction, FDA-approved"
+semax,Semax,"ACTH(4-10)|Semax-Acetate",high,"Nootropic peptide, cognitive enhancement, popular in Russia"
+selank,Selank,"TP-7|Taftsin analog",high,"Anxiolytic nootropic, immune modulation"
+mots-c,MOTS-c,"Mitochondrial ORF of the 12S rRNA type-c",high,"Mitochondrial peptide, metabolic regulation, longevity"
+cerebrolysin,Cerebrolysin,"FPF-1070|CERE",high,"Neuroprotective peptide mixture, stroke & dementia treatment"
+dihexa,Dihexa,"N-hexanoic-Tyr-Ile-(6) aminohexanoic amide",high,"Cognitive enhancement, potent neurogenic effects"
+aod-9604,AOD-9604,"Advanced Obesity Drug 9604|Fragment 176-191",high,"hGH fragment, fat loss without muscle effects"
+melanotan-2,Melanotan II,"MT-II|Melanotan 2",medium,"Melanocortin receptor agonist, tanning & libido, safety concerns"
+hexarelin,Hexarelin,"Examorelin|HEX",medium,"Growth hormone secretagogue, cardioprotective effects"
+ghrp-2,GHRP-2,"Growth Hormone Releasing Peptide-2|Pralmorelin",medium,"GH secretagogue, appetite stimulation"
+ghrp-6,GHRP-6,"Growth Hormone Releasing Peptide-6",medium,"GH secretagogue, strong appetite effects"
+tesamorelin,Tesamorelin,"Egrifta|TH9507",medium,"GHRH analog, FDA-approved for HIV lipodystrophy"
+sermorelin,Sermorelin,"GRF 1-29|Geref",medium,"GHRH analog, anti-aging & growth hormone therapy"
+mod-grf,MOD-GRF,"Modified GRF 1-29|CJC-1295 no DAC",medium,"GHRH analog without DAC, shorter half-life than CJC-1295"
+igf-1-lr3,IGF-1 LR3,"Long R3 IGF-I|Insulin-like Growth Factor-1 Long R3",medium,"Modified IGF-1, muscle growth & recovery"
+peg-mgf,PEG-MGF,"Pegylated Mechano Growth Factor",medium,"IGF-1 splice variant, muscle repair"
+follistatin-344,Follistatin 344,"FST-344|Follistatin",medium,"Myostatin inhibitor, muscle growth potential"
+ll-37,LL-37,"Cathelicidin|hCAP-18",medium,"Antimicrobial peptide, immune support & wound healing"
+kpv,KPV,"Lysine-Proline-Valine",medium,"Anti-inflammatory tripeptide from alpha-MSH"
+matrixyl,Matrixyl,"Palmitoyl Pentapeptide-4|Pal-KTTKS",medium,"Cosmetic peptide, collagen synthesis"
+argireline,Argireline,"Acetyl Hexapeptide-3|Acetyl Hexapeptide-8",medium,"Cosmetic peptide, botox alternative for wrinkles"
+adipotide,Adipotide,"FTPP|Prohibitin-targeting Peptide 1",medium,"Experimental fat loss peptide, vascular targeting"

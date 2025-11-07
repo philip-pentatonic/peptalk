@@ -24,12 +24,17 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "clean": "pnpm -r clean && rm -rf node_modules",
-    "cli": "tsx packages/research/cli/run-single.ts"
+    "cli": "tsx packages/research/cli/run-single.ts",
+    "discover": "tsx scripts/discover-peptides.ts",
+    "batch:seeds": "tsx scripts/batch-process-seeds.ts",
+    "batch:seeds:all": "tsx scripts/batch-process-seeds.ts --all-priorities"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
+    "@vitest/coverage-v8": "^1.1.0",
+    "csv-parse": "^6.1.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.33.2",
@@ -37,8 +42,7 @@
     "prettier": "^3.1.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "vitest": "^1.1.0",
-    "@vitest/coverage-v8": "^1.1.0"
+    "vitest": "^1.1.0"
   },
   "dependencies": {
     "zod": "^3.22.4"

@@ -32,6 +32,9 @@ export default function RootLayout({
                   <a href="/peptides" className="text-gray-600 hover:text-gray-900">
                     Browse Peptides
                   </a>
+                  <a href="/news" className="text-gray-600 hover:text-gray-900">
+                    Latest Research
+                  </a>
                   <a href="/about" className="text-gray-600 hover:text-gray-900">
                     About
                   </a>

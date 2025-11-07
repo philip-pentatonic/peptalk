@@ -19,11 +19,49 @@ peptides.get('/', async (c) => {
   // Parse query parameters
   const search = c.req.query('search')
   const evidenceGrade = c.req.query('evidenceGrade')
+  const category = c.req.query('category')
   const page = parseInt(c.req.query('page') || '1')
   const limit = Math.min(parseInt(c.req.query('limit') || '20'), 100)
   const offset = (page - 1) * limit
 
   try {
+    // If category filter is provided, get peptides by category
+    if (category) {
+      const slugs = await categories.getPeptidesByCategory(db, category)
+
+      // Fetch full peptide data for these slugs
+      const peptideData = await Promise.all(
+        slugs.slice(offset, offset + limit).map(slug => Peptides.getBySlug(db, slug))
+      )
+
+      // Filter out nulls and fetch categories for each
+      const peptidesWithCategories = await Promise.all(
+        peptideData.filter((p): p is NonNullable<typeof p> => p !== null).map(async (peptide) => {
+          const peptideCategories = await categories.getPeptideCategories(db, peptide.slug)
+          return {
+            ...peptide,
+            categories: peptideCategories.map((c) => ({
+              slug: c.slug,
+              name: c.name,
+              icon: c.icon,
+              confidence: c.confidence,
+            })),
+          }
+        })
+      )
+
+      return c.json({
+        data: peptidesWithCategories,
+        pagination: {
+          page,
+          pages: Math.ceil(slugs.length / limit),
+          total: slugs.length,
+          limit,
+        },
+      })
+    }
+
+    // Regular list without category filter
     const result = await Peptides.list(db, {
       search,
       evidenceGrade: evidenceGrade as any,
@@ -31,8 +69,24 @@ peptides.get('/', async (c) => {
       offset,
     })
 
+    // Fetch categories for each peptide
+    const dataWithCategories = await Promise.all(
+      result.data.map(async (peptide) => {
+        const peptideCategories = await categories.getPeptideCategories(db, peptide.slug)
+        return {
+          ...peptide,
+          categories: peptideCategories.map((c) => ({
+            slug: c.slug,
+            name: c.name,
+            icon: c.icon,
+            confidence: c.confidence,
+          })),
+        }
+      })
+    )
+
     return c.json({
-      data: result.data,
+      data: dataWithCategories,
       pagination: {
         page: result.page,
         pages: result.pages,

@@ -13,6 +13,8 @@ import { stripe } from './routes/stripe-routes'
 import ingest from './routes/ingest'
 import internal from './routes/internal'
 import categoriesRoute from './routes/categories'
+import dashboard from './routes/dashboard'
+import news from './routes/news'
 import { rateLimit } from './middleware/rate-limit'
 import type { Bindings } from './types'
 
@@ -51,6 +53,8 @@ app.get('/', (c) => {
 // API Routes
 app.route('/api/peptides', peptides)
 app.route('/api/categories', categoriesRoute)
+app.route('/api/dashboard', dashboard)
+app.route('/api/news', news)
 app.route('/api/pdf', pdf)
 app.route('/api/auth', auth)
 app.route('/api/stripe', stripe)

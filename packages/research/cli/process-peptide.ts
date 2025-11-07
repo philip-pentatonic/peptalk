@@ -12,6 +12,7 @@ import { normalize } from '../ingest/normalizer'
 import { gradeEvidence } from '../rubric/grade-evidence'
 import { synthesizePage, type ClaudeConfig } from '../synthesis'
 import { validateCompliance, quickValidation, type ComplianceConfig } from '../compliance'
+import { categorizePeptide, validateCategories } from '../categorization'
 import { publish, type PublishConfig } from '../publisher'
 import type { SourcePack } from '@peptalk/schemas'
 
@@ -39,8 +40,9 @@ export interface ProcessPeptideResult {
     ingest: { pubmedCount: number; clinicalTrialsCount: number; totalCount: number }
     normalize: { deduplicatedCount: number; evidenceGrade: string }
     synthesize: { cost: number; tokens: { input: number; output: number } }
+    categorize?: { categoriesCount: number; categories: string[] }
     compliance: { passed: boolean; score: number; issuesCount: number }
-    publish?: { pdfUrl: string; pdfSizeBytes: number; pdfPageCount: number }
+    publish?: { pdfUrl: string; pdfSizeBytes: number; pdfPageCount: number; categoriesInserted: number }
   }
   error?: string
   duration: number
@@ -120,8 +122,43 @@ export async function processPeptide(
     console.log(`   ✓ Tokens: ${synthesis.usage.inputTokens} input, ${synthesis.usage.outputTokens} output`)
     console.log(`   ⏱️  ${Date.now() - synthesizeStart}ms\n`)
 
+    // Step 3.5: Categorize (AI-powered)
+    console.log('🏷️  Step 3.5/6: Auto-categorizing peptide with Claude...')
+    const categorizeStart = Date.now()
+
+    let categoryResult
+    try {
+      const categorizationResult = await categorizePeptide(
+        input.name,
+        synthesis.pageRecord.summaryHtml + '\n' + synthesis.pageRecord.sections.map(s => s.contentHtml).join('\n'),
+        config.claude.apiKey,
+        config.claude.model
+      )
+
+      if (validateCategories(categorizationResult)) {
+        categoryResult = {
+          categoriesCount: categorizationResult.categories.length,
+          categories: categorizationResult.categories.map(c => c.categorySlug),
+          assignments: categorizationResult.categories,
+        }
+        console.log(`   ✓ Assigned ${categoryResult.categoriesCount} categories:`)
+        for (const cat of categorizationResult.categories) {
+          console.log(`      - ${cat.categorySlug} (${cat.confidence}): ${cat.reasoning}`)
+        }
+      } else {
+        console.log(`   ⚠️  Categorization validation failed, skipping categories`)
+        categoryResult = { categoriesCount: 0, categories: [], assignments: [] }
+      }
+    } catch (error) {
+      console.log(`   ⚠️  Categorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.log(`   Proceeding without categories`)
+      categoryResult = { categoriesCount: 0, categories: [], assignments: [] }
+    }
+
+    console.log(`   ⏱️  ${Date.now() - categorizeStart}ms\n`)
+
     // Step 4: Quick validation
-    console.log('⚡ Step 4/6: Quick validation...')
+    console.log('⚡ Step 4/7: Quick validation...')
     const quickValidationStart = Date.now()
 
     const quickValidationResult = quickValidation(synthesis.pageRecord)
@@ -140,7 +177,7 @@ export async function processPeptide(
     let complianceResult = quickValidationResult
 
     if (!config.skipCompliance) {
-      console.log('🔍 Step 5/6: Full compliance validation with GPT-5...')
+      console.log('🔍 Step 5/7: Full compliance validation with GPT-5...')
       const complianceStart = Date.now()
 
       complianceResult = await validateCompliance(synthesis.pageRecord, config.compliance)
@@ -158,17 +195,21 @@ export async function processPeptide(
         throw new Error('Compliance validation failed. Fix issues before publishing.')
       }
     } else {
-      console.log('⏭️  Step 5/6: Skipping full compliance check\n')
+      console.log('⏭️  Step 5/7: Skipping full compliance check\n')
     }
 
     // Step 6: Publish
     let publishResult = undefined
 
     if (!config.dryRun) {
-      console.log('📤 Step 6/6: Publishing to D1 and R2...')
+      console.log('📤 Step 6/7: Publishing to D1 and R2...')
       const publishStart = Date.now()
 
-      const published = await publish(synthesis.pageRecord, config.publish)
+      const published = await publish(
+        synthesis.pageRecord,
+        config.publish,
+        categoryResult.assignments.map(c => ({ slug: c.categorySlug, confidence: c.confidence }))
+      )
 
       if (!published.success) {
         throw new Error(published.error || 'Publishing failed')
@@ -178,14 +219,15 @@ export async function processPeptide(
         pdfUrl: published.pdfUrl,
         pdfSizeBytes: published.pdf.sizeBytes,
         pdfPageCount: published.pdf.pageCount,
+        categoriesInserted: published.database.categoriesInserted,
       }
 
       console.log(`   ✓ PDF generated: ${published.pdf.pageCount} pages, ${formatBytes(published.pdf.sizeBytes)}`)
-      console.log(`   ✓ Database updated: ${published.database.studiesInserted} studies, ${published.database.sectionsInserted} sections`)
+      console.log(`   ✓ Database updated: ${published.database.studiesInserted} studies, ${published.database.sectionsInserted} sections, ${published.database.categoriesInserted} categories`)
       console.log(`   ✓ PDF uploaded: ${published.pdfUrl}`)
       console.log(`   ⏱️  ${Date.now() - publishStart}ms\n`)
     } else {
-      console.log('🏃 Step 6/6: Dry run - skipping publish\n')
+      console.log('🏃 Step 6/7: Dry run - skipping publish\n')
     }
 
     const duration = Date.now() - startTime
@@ -212,6 +254,10 @@ export async function processPeptide(
             output: synthesis.usage.outputTokens,
           },
         },
+        categorize: categoryResult ? {
+          categoriesCount: categoryResult.categoriesCount,
+          categories: categoryResult.categories,
+        } : undefined,
         compliance: {
           passed: complianceResult.passed,
           score: complianceResult.score,

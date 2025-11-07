@@ -200,6 +200,123 @@ internal.post('/changelog', async (c) => {
 })
 
 /**
+ * Insert peptide categories
+ * POST /api/internal/categories
+ */
+internal.post('/categories', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { peptideSlug, categories: categoryList } = body
+
+    if (!Array.isArray(categoryList) || categoryList.length === 0) {
+      return c.json({ error: 'Invalid categories array' }, 400)
+    }
+
+    // Delete existing categories for this peptide
+    await c.env.DB
+      .prepare('DELETE FROM peptide_categories WHERE peptide_id = ?')
+      .bind(peptideSlug)
+      .run()
+
+    // Map category slugs to IDs
+    const categoryMappings = await Promise.all(
+      categoryList.map(async (cat: { slug: string; confidence: string }) => {
+        const result = await c.env.DB
+          .prepare('SELECT id FROM categories WHERE slug = ?')
+          .bind(cat.slug)
+          .first<{ id: string }>()
+
+        return result ? { id: result.id, confidence: cat.confidence } : null
+      })
+    )
+
+    // Filter out null values (categories that don't exist)
+    const validMappings = categoryMappings.filter((m): m is { id: string; confidence: string } => m !== null)
+
+    if (validMappings.length === 0) {
+      return c.json({ success: true, count: 0 })
+    }
+
+    // Insert new categories
+    const statements = validMappings.map((mapping) =>
+      c.env.DB
+        .prepare(
+          `INSERT INTO peptide_categories (peptide_id, category_id, confidence)
+           VALUES (?, ?, ?)`
+        )
+        .bind(peptideSlug, mapping.id, mapping.confidence)
+    )
+
+    await c.env.DB.batch(statements)
+
+    return c.json({
+      success: true,
+      count: validMappings.length
+    })
+  } catch (error) {
+    console.error('Categories insert failed:', error)
+    return c.json({
+      error: 'Failed to insert categories',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+/**
+ * Create news item
+ * POST /api/internal/news
+ */
+internal.post('/news', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { id, title, type, peptideSlug, content, summary, source, sourceUrl, pmid, nctId, publishedAt } = body
+
+    // Check if news item already exists
+    const existing = await c.env.DB
+      .prepare('SELECT id FROM peptide_news WHERE id = ?')
+      .bind(id)
+      .first()
+
+    if (existing) {
+      return c.json({
+        success: true,
+        message: 'News item already exists',
+        duplicate: true
+      })
+    }
+
+    // Insert news item
+    await c.env.DB
+      .prepare(
+        `INSERT INTO peptide_news (id, title, type, peptide_slug, content, summary, source, source_url, pmid, nct_id, published_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        id,
+        title,
+        type,
+        peptideSlug || null,
+        content,
+        summary || null,
+        source,
+        sourceUrl || null,
+        pmid || null,
+        nctId || null,
+        publishedAt
+      )
+      .run()
+
+    return c.json({ success: true, id })
+  } catch (error) {
+    console.error('News creation failed:', error)
+    return c.json({
+      error: 'Failed to create news item',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500)
+  }
+})
+
+/**
  * Rollback peptide (delete all data)
  * DELETE /api/internal/peptide/:peptideId
  */

@@ -385,50 +385,80 @@ export default function ImprovedPeptideDetailPage() {
                     id={`section-${section.title.toLowerCase().replace(/\s+/g, '-')}`}
                     className="bg-white rounded-lg shadow-sm p-8"
                   >
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
                       {section.title}
                     </h2>
 
-                    {section.plainLanguageSummary && (
-                      <div className="bg-green-50 border-l-4 border-green-500 rounded-r-lg p-4 mb-6">
-                        <div className="flex">
-                          <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <h3 className="text-sm font-semibold text-green-900 mb-1">
-                              In Plain English
-                            </h3>
-                            <p className="text-sm text-green-800 leading-relaxed">
-                              {section.plainLanguageSummary}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* Plain Language Summary - Main Content */}
+                    {section.plainLanguageSummary ? (
+                      <div className="mb-6">
+                        <p className="text-lg text-gray-800 leading-relaxed mb-4">
+                          {section.plainLanguageSummary}
+                        </p>
 
-                    <div
-                      className="prose max-w-none
-                        prose-headings:text-gray-900
-                        prose-h1:text-2xl prose-h1:font-bold prose-h1:mt-6 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b prose-h1:border-gray-200
-                        prose-h2:text-xl prose-h2:font-bold prose-h2:mt-5 prose-h2:mb-3
-                        prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2
-                        prose-p:text-base prose-p:text-gray-700 prose-p:leading-7 prose-p:mb-4
-                        prose-strong:text-gray-900 prose-strong:font-semibold
-                        prose-ul:my-3 prose-ul:space-y-1 prose-li:text-gray-700
-                        prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline"
-                      dangerouslySetInnerHTML={{
-                        __html: marked.parse(
-                          // Add newlines before markdown headers for proper parsing
-                          section.contentHtml
-                            .replace(/\s+##\s+/g, '\n\n## ')
-                            .replace(/\s+###\s+/g, '\n\n### ')
-                            .replace(/^#\s+/g, '# ')
-                        ) as string
-                      }}
-                    />
+                        {/* Expandable Technical Details */}
+                        <details className="group">
+                          <summary className="cursor-pointer list-none">
+                            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium text-gray-700">
+                              <svg
+                                className="w-4 h-4 transition-transform group-open:rotate-90"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                              <span>View Technical Details & Citations</span>
+                            </div>
+                          </summary>
+
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <div
+                              className="prose max-w-none
+                                prose-headings:text-gray-900
+                                prose-h1:text-2xl prose-h1:font-bold prose-h1:mt-6 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b prose-h1:border-gray-200
+                                prose-h2:text-xl prose-h2:font-bold prose-h2:mt-5 prose-h2:mb-3
+                                prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2
+                                prose-p:text-base prose-p:text-gray-700 prose-p:leading-7 prose-p:mb-4
+                                prose-strong:text-gray-900 prose-strong:font-semibold
+                                prose-ul:my-3 prose-ul:space-y-1 prose-li:text-gray-700
+                                prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline"
+                              dangerouslySetInnerHTML={{
+                                __html: marked.parse(
+                                  // Add newlines before markdown headers for proper parsing
+                                  section.contentHtml
+                                    .replace(/\s+##\s+/g, '\n\n## ')
+                                    .replace(/\s+###\s+/g, '\n\n### ')
+                                    .replace(/^#\s+/g, '# ')
+                                ) as string
+                              }}
+                            />
+                          </div>
+                        </details>
+                      </div>
+                    ) : (
+                      /* Fallback: No plain language summary available */
+                      <div
+                        className="prose max-w-none
+                          prose-headings:text-gray-900
+                          prose-h1:text-2xl prose-h1:font-bold prose-h1:mt-6 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b prose-h1:border-gray-200
+                          prose-h2:text-xl prose-h2:font-bold prose-h2:mt-5 prose-h2:mb-3
+                          prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2
+                          prose-p:text-base prose-p:text-gray-700 prose-p:leading-7 prose-p:mb-4
+                          prose-strong:text-gray-900 prose-strong:font-semibold
+                          prose-ul:my-3 prose-ul:space-y-1 prose-li:text-gray-700
+                          prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline"
+                        dangerouslySetInnerHTML={{
+                          __html: marked.parse(
+                            // Add newlines before markdown headers for proper parsing
+                            section.contentHtml
+                              .replace(/\s+##\s+/g, '\n\n## ')
+                              .replace(/\s+###\s+/g, '\n\n### ')
+                              .replace(/^#\s+/g, '# ')
+                          ) as string
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
             </div>

@@ -10,20 +10,27 @@ export interface DatabaseWriteConfig {
   apiSecret: string
 }
 
+export interface CategoryAssignment {
+  slug: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
 export interface DatabaseWriteResult {
   peptideId: string
   studiesInserted: number
   sectionsInserted: number
+  categoriesInserted: number
   success: boolean
 }
 
 /**
  * Write PageRecord to D1 database via HTTP API.
- * Inserts peptide, studies, and sections through internal endpoints.
+ * Inserts peptide, studies, sections, and categories through internal endpoints.
  */
 export async function writeToDatabase(
   pageRecord: PageRecord,
-  config: DatabaseWriteConfig
+  config: DatabaseWriteConfig,
+  categories?: CategoryAssignment[]
 ): Promise<DatabaseWriteResult> {
   try {
     // 1. Insert or update peptide
@@ -37,13 +44,19 @@ export async function writeToDatabase(
     // Note: Also uses slug for foreign key
     const sectionsInserted = await insertSections(pageRecord.slug, pageRecord.sections, config)
 
-    // 4. Log to changelog
+    // 4. Insert categories (if provided)
+    const categoriesInserted = categories && categories.length > 0
+      ? await insertCategories(pageRecord.slug, categories, config)
+      : 0
+
+    // 5. Log to changelog
     await logChange(peptideId, pageRecord.version, config)
 
     return {
       peptideId,
       studiesInserted,
       sectionsInserted,
+      categoriesInserted,
       success: true,
     }
   } catch (error) {
@@ -181,6 +194,40 @@ async function insertSections(
   }
 
   return sections.length
+}
+
+/**
+ * Insert peptide categories via HTTP.
+ */
+async function insertCategories(
+  peptideSlug: string,
+  categories: CategoryAssignment[],
+  config: DatabaseWriteConfig
+): Promise<number> {
+  if (categories.length === 0) return 0
+
+  const response = await fetch(`${config.apiUrl}/api/internal/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.apiSecret,
+    },
+    body: JSON.stringify({
+      peptideSlug,
+      categories: categories.map((cat) => ({
+        slug: cat.slug,
+        confidence: cat.confidence,
+      })),
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to insert categories: ${response.status} ${error}`)
+  }
+
+  const result = await response.json() as { success: boolean; count: number }
+  return result.count
 }
 
 /**
