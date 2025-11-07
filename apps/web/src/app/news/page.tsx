@@ -31,27 +31,43 @@ const NEWS_TYPES = [
 ]
 
 export default function NewsPage() {
+  console.log('NewsPage component rendering')
   const [news, setNews] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('useEffect triggered, selectedType:', selectedType)
     fetchNews()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedType])
 
   const fetchNews = async () => {
     setLoading(true)
+    setError(null)
     try {
       const url = selectedType
         ? `${API_URL}/api/news?type=${selectedType}&limit=50`
         : `${API_URL}/api/news?limit=50`
 
+      console.log('Fetching news from:', url)
       const response = await fetch(url)
+      console.log('Response status:', response.status)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
+      console.log('Received news data:', data)
       setNews(data.data || [])
-    } catch (error) {
-      console.error('Failed to fetch news:', error)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Failed to fetch news:', errorMessage)
+      setError(errorMessage)
+      setNews([])
     } finally {
       setLoading(false)
     }
@@ -134,7 +150,18 @@ export default function NewsPage() {
 
       {/* News List */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {loading ? (
+        {error ? (
+          <div className="text-center py-12">
+            <p className="text-red-600 text-lg font-semibold">Error loading news</p>
+            <p className="text-gray-600 mt-2">{error}</p>
+            <button
+              onClick={fetchNews}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>

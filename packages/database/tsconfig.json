@@ -37,8 +37,8 @@
     // Path Mapping
     "baseUrl": "..",
     "paths": {
-      "@peptalk/schemas": ["schemas/dist/index.d.ts"],
-      "@peptalk/schemas/*": ["schemas/dist/*"]
+      "@peptalk/schemas": ["schemas/src/index.ts"],
+      "@peptalk/schemas/*": ["schemas/src/*"]
     },
 
     // Types
